@@ -1,26 +1,38 @@
-use std::{io::{BufRead, BufReader, Error, Write}, net::{TcpListener, TcpStream}};
+use std::{fs, io::{BufRead, BufReader, Error, Write}, net::{TcpListener, TcpStream}};
 
 use super::{HttpRequest, HttpResponse};
 
 pub type HttpHandler = fn(server: HttpRequest) -> Result<HttpResponse, Error>;
 
-pub struct HttpRoute
+pub struct HttpRouteHandler
 {
     route: &'static str,
     handler: HttpHandler
 }
 
+pub enum HttpMethodHandler
+{
+    Get(HttpRouteHandler),
+    Head(HttpRouteHandler),
+    Post(HttpRouteHandler),
+    Put(HttpRouteHandler),
+    Delete(HttpRouteHandler),
+    Connect(HttpRouteHandler),
+    Options(HttpRouteHandler),
+    Trace(HttpRouteHandler),
+    Patch(HttpRouteHandler),
+}
 
 pub struct HttpServer<'a>
 {
     listener: TcpListener,
-    handlers: &'a [HttpRoute]
+    handlers: &'a [HttpMethodHandler]
 }
 
 
 impl<'a> HttpServer<'a>
 {
-    pub fn new(addr: &str, handlers: &'a [HttpRoute]) -> Result<Self, Error>
+    pub fn new(addr: &str, handlers: &'a [HttpMethodHandler]) -> Result<Self, Error>
     {
         let listener = TcpListener::bind(addr)?;
         Ok(Self{
@@ -29,17 +41,26 @@ impl<'a> HttpServer<'a>
         })
     }
 
-    fn conn_handler(&self, mut stream: TcpStream)
+    fn conn_handler(&self, mut stream: TcpStream) -> Result<(), Error>
     {
-        let buf_reader = BufReader::new(&stream);
-        let http_request: Vec<_> = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
-        println!("Request: {http_request:#?}");
-        let response = "HTTP/1.1 200 OK\r\n\r\n";
+       
+        let http_request = HttpRequest::new(&stream)?;
+        match http_request {
+            HttpRequest::Get(content) =>
+            {
+                println!("Http GET Request: {}", content.route)
+            },
+            _ => {}
+        }
+        let status_line = "HTTP/1.1 200 OK";
+        let contents = fs::read_to_string("hello.html").unwrap();
+        let length = contents.len();
+
+        let response =
+            format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+
         stream.write_all(response.as_bytes()).unwrap();
+        Ok(())
     }
 
     pub fn serve(&self) -> Result<(), Error>
@@ -48,7 +69,7 @@ impl<'a> HttpServer<'a>
         for stream in self.listener.incoming()
         {
             let stream = stream?;
-            self.conn_handler(stream);
+            self.conn_handler(stream)?;
         }
         Ok(())
     }
