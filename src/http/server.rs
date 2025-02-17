@@ -1,6 +1,6 @@
-use std::{fs, io::{BufRead, BufReader, Error, Write}, net::{TcpListener, TcpStream}};
+use std::{fs, io::{Error, Write}, net::{TcpListener, TcpStream}};
 
-use super::{HttpRequest, HttpResponse};
+use super::{mp::Executable, HttpRequest, HttpResponse};
 
 pub type HttpHandler = fn(server: HttpRequest) -> Result<HttpResponse, Error>;
 
@@ -26,19 +26,24 @@ pub enum HttpMethodHandler
 pub struct HttpServer<'a>
 {
     listener: TcpListener,
-    handlers: &'a [HttpMethodHandler]
+    handlers: &'a [HttpMethodHandler],
+    thread_pool: &'a dyn Executable
 }
 
-
-impl<'a> HttpServer<'a>
+struct HttpProcessor
 {
-    pub fn new(addr: &str, handlers: &'a [HttpMethodHandler]) -> Result<Self, Error>
+    // handlers: &'a [HttpMethodHandler],
+}
+
+impl HttpProcessor
+{
+    pub fn new() -> Self
     {
-        let listener = TcpListener::bind(addr)?;
-        Ok(Self{
-            listener: listener,
-            handlers: handlers
-        })
+        // Self
+        // {
+        //     handlers: handlers
+        // }
+        Self{}
     }
 
     fn conn_handler(&self, mut stream: TcpStream) -> Result<(), Error>
@@ -62,6 +67,19 @@ impl<'a> HttpServer<'a>
         stream.write_all(response.as_bytes()).unwrap();
         Ok(())
     }
+}
+
+impl<'a> HttpServer<'a>
+{
+    pub fn new(addr: &str, handlers: &'a [HttpMethodHandler], thread_pool: &'a dyn Executable) -> Result<Self, Error>
+    {
+        let listener = TcpListener::bind(addr)?;
+        Ok(Self{
+            listener: listener,
+            handlers: handlers,
+            thread_pool: thread_pool
+        })
+    }
 
     pub fn serve(&self) -> Result<(), Error>
     {
@@ -69,7 +87,13 @@ impl<'a> HttpServer<'a>
         for stream in self.listener.incoming()
         {
             let stream = stream?;
-            self.conn_handler(stream)?;
+            let job = move ||
+            {
+                let processor = HttpProcessor::new();
+                processor.conn_handler(stream).unwrap();
+            };
+            let job = Box::new(job);
+            self.thread_pool.try_submit(job)?;
         }
         Ok(())
     }
