@@ -2,6 +2,7 @@ use core::ffi;
 use alloc::string::{String, ToString};
 
 use super::Printable;
+use super::Error;
 
 extern "C"
 {
@@ -12,7 +13,7 @@ pub struct PosixIo;
 
 impl Printable for PosixIo
 {
-    fn print(msg: &str) -> Result<usize, ()> {
+    fn print(msg: &str) -> Result<usize, Error> {
         let mut msg = msg.to_string();
         msg.push(0 as char);
         let ret = unsafe {
@@ -20,12 +21,12 @@ impl Printable for PosixIo
         };
         if ret < 0
         {
-            return Err(());
+            return Err(Error::IoErr("Posix: Failed to printf".to_string()));
         }
         Ok(ret as usize)
     }
     
-    fn println(msg: &str) -> Result<usize, ()> {
+    fn println(msg: &str) -> Result<usize, Error> {
         let mut msg = msg.to_string();
         msg.push(0 as char);
         let ret = unsafe {
@@ -33,29 +34,29 @@ impl Printable for PosixIo
         };
         if ret < 0
         {
-            return Err(());
+            return Err(Error::IoErr("Posix: Failed to printf".to_string()));
         }
         Ok(ret as usize) 
     }
     
-    fn printstr(msg: &String) -> Result<usize, ()> {
+    fn printstr(msg: &String) -> Result<usize, Error> {
         let ret = unsafe {
             printf("%s\0".as_ptr() as *const ffi::c_char, msg.as_ptr())
         };
         if ret < 0
         {
-            return Err(());
+            return Err(Error::IoErr("Posix: Failed to printf".to_string()));
         }
         Ok(ret as usize)
     }
     
-    fn printstrln(msg: &String) -> Result<usize, ()> {
+    fn printstrln(msg: &String) -> Result<usize, Error> {
         let ret = unsafe {
             printf("%s\n\0".as_ptr() as *const ffi::c_char, msg.as_ptr())
         };
         if ret < 0
         {
-            return Err(());
+            return Err(Error::IoErr("Posix: Failed to printf".to_string()));
         }
         Ok(ret as usize)
     }
