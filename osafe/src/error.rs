@@ -3,5 +3,6 @@ use alloc::string::String;
 #[derive(Debug)]
 pub enum Error
 {
-    IoErr(String)
+    IoErr(String),
+    MultiProcessingErr(String)
 }

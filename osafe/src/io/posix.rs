@@ -1,13 +1,10 @@
 use core::ffi;
 use alloc::string::{String, ToString};
 
+use crate::printf;
+
 use super::Printable;
 use super::Error;
-
-extern "C"
-{
-    fn printf(format: *const ffi::c_char, ...) -> ffi::c_int;
-}
 
 pub struct PosixIo;
 
