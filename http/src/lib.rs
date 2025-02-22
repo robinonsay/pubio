@@ -1,7 +1,7 @@
-use std::{io::{BufRead, BufReader, Error, ErrorKind, Read}, net::TcpStream, result, str::FromStr};
-
 pub mod server;
 pub mod mp;
+
+use std::{io::{BufRead, BufReader, Error, ErrorKind, Read}, net::TcpStream, result, str::FromStr};
 
 #[derive(Debug)]
 pub enum HttpHeader
