@@ -4,6 +4,7 @@ use super::{mp::Executable, HttpRequest, HttpResponse};
 
 pub type HttpHandler = fn(server: HttpRequest) -> Result<HttpResponse, Error>;
 
+#[allow(dead_code)]
 pub struct HttpRouteHandler
 {
     route: &'static str,

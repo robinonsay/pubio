@@ -1,14 +1,14 @@
-use core::{ffi, marker::PhantomData, str::FromStr};
+use core::{ffi, marker::PhantomData};
 
 use alloc::{boxed::Box, string::{String, ToString}};
 
-use crate::{error::{ErrNo, Error}, pthread_attr_t, pthread_cancel, pthread_create, pthread_join, pthread_t, strerror};
+use crate::{error::{ErrNo, Error}, posix::{pthread_attr_t, pthread_cancel, pthread_create, pthread_join, pthread_t}};
 
-use super::{Job, Joinable};
+use super::Joinable;
 // create NULL constant
 const NULL: *mut ffi::c_void = 0 as *mut ffi::c_void;
 
-struct PosixThread<T>
+pub struct PosixThread<T>
 {
     /// The POSIX thread handle
     handle: pthread_t,
@@ -41,6 +41,7 @@ struct PosixThread<T>
 /// behavior.
 impl<T> PosixThread<T>
 {
+    #[allow(dead_code)]
     extern "C" fn thread_start<F>(args: *mut ffi::c_void) -> *mut ffi::c_void
     where F: FnOnce() -> T + Send + 'static
     {
@@ -59,6 +60,7 @@ impl<T> PosixThread<T>
     }
 
     /// Creates a new Posix Thread
+    #[allow(dead_code)]
     pub fn new<F>(process: F) -> Result<Self, Error>
     where F: FnOnce() -> T + Send + 'static
     {
@@ -127,8 +129,6 @@ impl<T> Drop for PosixThread<T>
 
 #[cfg(test)]
 mod tests {
-    use crate::sleep;
-
     use super::*;
 
     #[test]

@@ -1,7 +1,7 @@
 pub mod server;
 pub mod mp;
 
-use std::{io::{BufRead, BufReader, Error, ErrorKind, Read}, net::TcpStream, result, str::FromStr};
+use std::{io::{BufRead, BufReader, Error, ErrorKind}, net::TcpStream};
 
 #[derive(Debug)]
 pub enum HttpHeader
@@ -9,6 +9,7 @@ pub enum HttpHeader
 
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct HttpContent
 {
@@ -42,7 +43,7 @@ impl HttpRequest
 {
     pub fn new(stream: &TcpStream) -> Result<Self, Error>
     {
-        let mut buf_rdr = BufReader::new(stream);
+        let buf_rdr = BufReader::new(stream);
         let mut lines = buf_rdr.lines();
         // Create start line buffer
         let start_line = lines.next()

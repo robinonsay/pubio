@@ -2,9 +2,13 @@ use alloc::boxed::Box;
 
 use crate::error::Error;
 
-pub mod mp_posix;
+pub mod thread_posix;
 
+#[allow(dead_code)]
 type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
+
+#[allow(dead_code)]
+type Process = Box<dyn FnOnce() + Send + 'static>;
 
 /// Waits for the process to finish and returns its output
 /// 
@@ -17,6 +21,7 @@ type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
 /// 
 /// This function will return an error if the process fails to join or encounters
 /// any runtime errors during execution
+#[allow(dead_code)]
 trait Joinable<T>
 {
     fn join(&mut self) -> Result<Box<Option<T>>, Error>;

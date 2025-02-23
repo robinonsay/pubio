@@ -1,4 +1,5 @@
-use std::{io::{Error, ErrorKind}, sync::{mpsc::{self, Receiver, Sender, SyncSender}, Arc, Mutex}, thread::{self, JoinHandle}};
+use std::{io::{Error, ErrorKind}, sync::{mpsc::{self, Receiver, SyncSender}, Arc, Mutex}};
+use osafe::multiprocessing::thread_posix::PosixThread;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
@@ -7,12 +8,14 @@ pub trait Executable
     fn try_submit(&self, job: Job) -> Result<(), Error>;
 }
 
+#[allow(dead_code)]
 struct Worker
 {
     id: usize,
-    handle: JoinHandle<()>
+    handle: PosixThread<()>
 }
 
+#[allow(dead_code)]
 pub struct ThreadPool<const J: usize, const N: usize>
 {
     sender: SyncSender<Job>,
@@ -23,13 +26,13 @@ impl Worker
 {
     pub fn new(id: usize, recvr: Arc<Mutex<Receiver<Job>>>) -> Self
     {
-        let handle = thread::spawn(move || loop
+        let handle = PosixThread::new(move || loop
         {
             // Get the job. We can unwrap since this is in a new thread
             let job = recvr.lock().unwrap().recv().unwrap();
             // Execute the job
             job();
-        });
+        }).unwrap();
         // Return the worker
         return Self
         {

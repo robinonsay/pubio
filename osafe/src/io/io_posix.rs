@@ -1,7 +1,7 @@
 use core::ffi;
 use alloc::string::{String, ToString};
 
-use crate::printf;
+use crate::posix::printf;
 
 use super::Printable;
 use super::Error;

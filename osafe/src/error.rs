@@ -1,5 +1,5 @@
 
-use alloc::string::{String};
+use alloc::string::String;
 
 
 pub trait ErrNo
@@ -19,9 +19,9 @@ mod posix
 use alloc::string::{String, ToString};
 
 use core::{ffi, str::FromStr};
-use crate::strerror;
+use crate::posix::strerror;
 
-use super::{ErrNo, Error};
+use super::ErrNo;
 impl ErrNo for String
 {
     fn from_errno(errno: i32) -> String
