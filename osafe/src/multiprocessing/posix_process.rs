@@ -39,19 +39,30 @@ impl PosixProcess
         }
     }
 
-    pub fn signal(self, sig: Signal) -> Result<(), Error>
+    fn signal(&self, sig: Signal) -> Result<(), Error>
     {
         let sig = match sig
         {
             Signal::Kill => 9,      // SIGKILL
             Signal::Interrupt => 2, // SIGINT
         };
-        let ret = unsafe{kill(self.pid, sig)};
-        if ret != 0
+        if self.pid > 0
         {
-            return Err(Error::MultiProcessingErr(format!("Failed to send signal {}", sig)))
+            let ret = unsafe{kill(self.pid, sig)};
+            if ret != 0
+            {
+                return Err(Error::MultiProcessingErr(format!("Failed to send signal {}", sig)))
+            }
+            return Ok(())
         }
         Ok(())
+    }
+}
+
+impl Drop for PosixProcess
+{
+    fn drop(&mut self) {
+        self.signal(Signal::Interrupt).unwrap();
     }
 }
 
@@ -65,7 +76,8 @@ mod tests {
     {
         let process = PosixProcess::fork(||{
             PosixPrint::println("Hello from a new process!").unwrap();
-            unsafe { sleep(60) };
+            unsafe { sleep(10) };
+            PosixPrint::println("Process is still running!").unwrap();
         }).unwrap();
         match process {
             Some(process) =>
@@ -75,6 +87,18 @@ mod tests {
                 process.signal(Signal::Interrupt).unwrap();
             },
             None => return,
+        }
+    }
+    #[test]
+    fn test_process_drop()
+    {
+        {
+            let _process = PosixProcess::fork(||{
+                PosixPrint::println("Hello from a new process!").unwrap();
+                unsafe { sleep(5) };
+                PosixPrint::println("Process is still running!").unwrap();
+            }).unwrap();
+            unsafe { sleep(1) };
         }
     }
 }
