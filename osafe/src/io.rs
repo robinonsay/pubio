@@ -1,6 +1,6 @@
 use alloc::string::String;
 use super::error::Error;
-pub mod io_posix;
+pub mod posix_print;
 
 pub trait Printable
 {

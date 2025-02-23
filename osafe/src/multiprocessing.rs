@@ -2,13 +2,11 @@ use alloc::boxed::Box;
 
 use crate::error::Error;
 
-pub mod thread_posix;
+pub mod posix_thread;
+pub mod posix_process;
 
 #[allow(dead_code)]
 type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
-
-#[allow(dead_code)]
-type Process = Box<dyn FnOnce() + Send + 'static>;
 
 /// Waits for the process to finish and returns its output
 /// 

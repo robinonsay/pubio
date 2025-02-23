@@ -41,7 +41,6 @@ pub struct PosixThread<T>
 /// behavior.
 impl<T> PosixThread<T>
 {
-    #[allow(dead_code)]
     extern "C" fn thread_start<F>(args: *mut ffi::c_void) -> *mut ffi::c_void
     where F: FnOnce() -> T + Send + 'static
     {
@@ -60,7 +59,6 @@ impl<T> PosixThread<T>
     }
 
     /// Creates a new Posix Thread
-    #[allow(dead_code)]
     pub fn new<F>(process: F) -> Result<Self, Error>
     where F: FnOnce() -> T + Send + 'static
     {

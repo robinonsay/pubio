@@ -1,5 +1,5 @@
 use std::{io::{Error, ErrorKind}, sync::{mpsc::{self, Receiver, SyncSender}, Arc, Mutex}};
-use osafe::multiprocessing::thread_posix::PosixThread;
+use osafe::multiprocessing::posix_thread::PosixThread;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 

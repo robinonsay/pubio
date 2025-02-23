@@ -6,9 +6,9 @@ use crate::posix::printf;
 use super::Printable;
 use super::Error;
 
-pub struct PosixIo;
+pub struct PosixPrint;
 
-impl Printable for PosixIo
+impl Printable for PosixPrint
 {
     fn print(msg: &str) -> Result<usize, Error> {
         let mut msg = msg.to_string();
@@ -69,19 +69,19 @@ mod tests {
     fn test_print(){
         let test= "Hello World\n";
         let test_str = test.to_string();
-        let result = PosixIo::printstr(&test_str);
+        let result = PosixPrint::printstr(&test_str);
         assert!(result.is_ok());
         let ret = result.unwrap();
         assert_eq!(ret, test_str.len());
-        let result = PosixIo::printstrln(&test_str);
+        let result = PosixPrint::printstrln(&test_str);
         assert!(result.is_ok());
         let ret = result.unwrap();
         assert_eq!(ret, test_str.len()+1);
-        let result = PosixIo::print(&test);
+        let result = PosixPrint::print(&test);
         assert!(result.is_ok());
         let ret = result.unwrap();
         assert_eq!(ret, test_str.len());
-        let result = PosixIo::println(&test);
+        let result = PosixPrint::println(&test);
         assert!(result.is_ok());
         let ret = result.unwrap();
         assert_eq!(ret, test_str.len()+1);
