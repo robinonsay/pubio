@@ -14,3 +14,4 @@ mod posix
 pub mod error;
 pub mod io;
 pub mod multiprocessing;
+pub mod ipc;

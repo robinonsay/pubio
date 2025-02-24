@@ -8,7 +8,7 @@ use super::Joinable;
 // create NULL constant
 const NULL: *mut ffi::c_void = 0 as *mut ffi::c_void;
 
-pub struct PosixThread<T>
+pub struct Thread<T>
 {
     /// The POSIX thread handle
     handle: pthread_t,
@@ -39,7 +39,7 @@ pub struct PosixThread<T>
 /// function and to manipulate raw pointers. Care must be taken to ensure that
 /// pointers are valid and that memory is properly managed to avoid undefined
 /// behavior.
-impl<T> PosixThread<T>
+impl<T> Thread<T>
 {
     extern "C" fn thread_start<F>(args: *mut ffi::c_void) -> *mut ffi::c_void
     where F: FnOnce() -> T + Send + 'static
@@ -86,7 +86,7 @@ impl<T> PosixThread<T>
     }
 }
 
-impl<T> Joinable<T> for PosixThread<T>
+impl<T> Joinable<T> for Thread<T>
 {
     fn join(&mut self) -> Result<Box<Option<T>>, Error> {
         let mut ret: *mut Option<T> = NULL as *mut Option<T>;
@@ -111,7 +111,7 @@ impl<T> Joinable<T> for PosixThread<T>
     }
 }
 
-impl<T> Drop for PosixThread<T>
+impl<T> Drop for Thread<T>
 {
     fn drop(&mut self) {
         if self.handle != 0
@@ -135,7 +135,7 @@ mod tests {
         let truth = 3;
         let modifier = 10;
         let mut starter = truth;
-        let mut thread = PosixThread::new(move ||{
+        let mut thread = Thread::new(move ||{
             starter += modifier;
             starter
         }).unwrap();
@@ -149,7 +149,7 @@ mod tests {
         let modifier = 1;
         let mut starter = truth;
         {
-            let thread = PosixThread::new(move ||{
+            let thread = Thread::new(move ||{
                 for _ in 0..1E9 as i64
                 {
                     starter += modifier;

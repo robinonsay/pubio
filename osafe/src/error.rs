@@ -11,7 +11,8 @@ pub trait ErrNo
 pub enum Error
 {
     IoErr(String),
-    MultiProcessingErr(String)
+    MultiProcessingErr(String),
+    IpcError(String)
 }
 
 mod posix

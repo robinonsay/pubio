@@ -1,5 +1,5 @@
 use std::{io::{Error, ErrorKind}, sync::{mpsc::{self, Receiver, SyncSender}, Arc, Mutex}};
-use osafe::multiprocessing::posix_thread::PosixThread;
+use osafe::multiprocessing::posix_thread::Thread;
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
@@ -12,7 +12,7 @@ pub trait Executable
 struct Worker
 {
     id: usize,
-    handle: PosixThread<()>
+    handle: Thread<()>
 }
 
 #[allow(dead_code)]
@@ -26,7 +26,7 @@ impl Worker
 {
     pub fn new(id: usize, recvr: Arc<Mutex<Receiver<Job>>>) -> Self
     {
-        let handle = PosixThread::new(move || loop
+        let handle = Thread::new(move || loop
         {
             // Get the job. We can unwrap since this is in a new thread
             let job = recvr.lock().unwrap().recv().unwrap();

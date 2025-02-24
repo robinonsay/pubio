@@ -2,18 +2,19 @@ use alloc::{format, string::String};
 
 use crate::{error::{ErrNo, Error}, posix::{__errno_location, fork, kill, pid_t}};
 
-pub enum Signal
+#[allow(dead_code)]
+enum Signal
 {
     Kill,
     Interrupt
 }
 
-pub struct PosixProcess
+pub struct Process
 {
     pid: pid_t
 }
 
-impl PosixProcess
+impl Process
 {
     pub fn fork<F>(entry: F) -> Result<Option<Self>, Error>
     where F: FnOnce() + Send + 'static
@@ -59,7 +60,7 @@ impl PosixProcess
     }
 }
 
-impl Drop for PosixProcess
+impl Drop for Process
 {
     fn drop(&mut self) {
         self.signal(Signal::Interrupt).unwrap();
@@ -69,20 +70,20 @@ impl Drop for PosixProcess
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{io::{posix_print::PosixPrint, Printable}, posix::sleep};
+    use crate::{io::{posix_print::Print, Printable}, posix::sleep};
 
     #[test]
     fn test_process()
     {
-        let process = PosixProcess::fork(||{
-            PosixPrint::println("Hello from a new process!").unwrap();
+        let process = Process::fork(||{
+            Print::println("Hello from a new process!").unwrap();
             unsafe { sleep(10) };
-            PosixPrint::println("Process is still running!").unwrap();
+            Print::println("Process is still running!").unwrap();
         }).unwrap();
         match process {
             Some(process) =>
             {
-                PosixPrint::printstrln(&format!("The new process is {}", process.pid)).unwrap();
+                Print::printstrln(&format!("The new process is {}", process.pid)).unwrap();
                 unsafe { sleep(1) };
                 process.signal(Signal::Interrupt).unwrap();
             },
@@ -93,10 +94,10 @@ mod tests {
     fn test_process_drop()
     {
         {
-            let _process = PosixProcess::fork(||{
-                PosixPrint::println("Hello from a new process!").unwrap();
+            let _process = Process::fork(||{
+                Print::println("Hello from a new process!").unwrap();
                 unsafe { sleep(5) };
-                PosixPrint::println("Process is still running!").unwrap();
+                Print::println("Process is still running!").unwrap();
             }).unwrap();
             unsafe { sleep(1) };
         }
