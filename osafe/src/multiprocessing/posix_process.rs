@@ -1,12 +1,16 @@
+use core::ffi;
+
 use alloc::{format, string::String};
 
-use crate::{error::{ErrNo, Error}, posix::{__errno_location, fork, kill, pid_t}};
+use crate::{error::{ErrNo, Error}, io::{posix_print::Print, Printable}, posix::{__errno_location, __sigset_t, fork, kill, pid_t, sigaction, sigaction__bindgen_ty_1, SIGINT, SIGKILL, SIGTERM}};
+
 
 #[allow(dead_code)]
 enum Signal
 {
     Kill,
-    Interrupt
+    Interrupt,
+    Term,
 }
 
 pub struct Process
@@ -14,9 +18,57 @@ pub struct Process
     pid: pid_t
 }
 
+static mut ON_EXIT: Option<fn()> = None;
+
 impl Process
 {
-    pub fn fork<F>(entry: F) -> Result<Option<Self>, Error>
+    extern "C" fn signal_handler(_: ffi::c_int)
+    {
+        unsafe
+        {
+
+            match ON_EXIT
+            {
+                Some(on_exit) => on_exit(),
+                None => return
+            }
+        }
+    }
+
+    pub fn register_exit_hdlr(hdlr: fn()) -> Result<(), Error>
+    {
+        unsafe
+        {
+            ON_EXIT = Some(hdlr);
+        }
+        let saction = sigaction{
+            __sigaction_handler: sigaction__bindgen_ty_1{
+                sa_handler: Some(Process::signal_handler)
+            },
+            sa_mask: __sigset_t{__val: [0; 16]},
+            sa_flags: 0,
+            sa_restorer: None
+        };
+        let ret = unsafe{sigaction(SIGINT as i32, &saction as *const sigaction, 0 as *mut sigaction)};
+        if ret == -1
+        {
+            let errno = unsafe {
+                *__errno_location()
+            };
+            return Err(Error::MultiProcessingErr(String::from_errno(errno)));
+        }
+        let ret = unsafe{sigaction(SIGTERM as i32, &saction as *const sigaction, 0 as *mut sigaction)};
+        if ret == -1
+        {
+            let errno = unsafe {
+                *__errno_location()
+            };
+            return Err(Error::MultiProcessingErr(String::from_errno(errno)));
+        }
+        Ok(())
+    }
+
+    pub fn run<F>(entry: F) -> Result<Option<Self>, Error>
     where F: FnOnce() + Send + 'static
     {
         let mut process = Self
@@ -44,12 +96,13 @@ impl Process
     {
         let sig = match sig
         {
-            Signal::Kill => 9,      // SIGKILL
-            Signal::Interrupt => 2, // SIGINT
+            Signal::Kill => SIGKILL,      // SIGKILL
+            Signal::Interrupt => SIGINT, // SIGINT
+            Signal::Term => SIGTERM,     // SIGTERM
         };
         if self.pid > 0
         {
-            let ret = unsafe{kill(self.pid, sig)};
+            let ret = unsafe{kill(self.pid, sig as i32)};
             if ret != 0
             {
                 return Err(Error::MultiProcessingErr(format!("Failed to send signal {}", sig)))
@@ -63,7 +116,11 @@ impl Process
 impl Drop for Process
 {
     fn drop(&mut self) {
-        self.signal(Signal::Interrupt).unwrap();
+        if self.pid > 0
+        {
+            Print::printstrln(&format!("Killing process {}", self.pid)).unwrap();
+            self.signal(Signal::Interrupt).unwrap();
+        }
     }
 }
 
@@ -75,7 +132,7 @@ mod tests {
     #[test]
     fn test_process()
     {
-        let process = Process::fork(||{
+        let process = Process::run(||{
             Print::println("Hello from a new process!").unwrap();
             unsafe { sleep(10) };
             Print::println("Process is still running!").unwrap();
@@ -94,7 +151,7 @@ mod tests {
     fn test_process_drop()
     {
         {
-            let _process = Process::fork(||{
+            let _process = Process::run(||{
                 Print::println("Hello from a new process!").unwrap();
                 unsafe { sleep(5) };
                 Print::println("Process is still running!").unwrap();

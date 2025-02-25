@@ -22,7 +22,7 @@ fn subprocess()
 #[test]
 fn test_ipc()
 {
-    let _subprocess = match Process::fork(subprocess).unwrap()
+    let _subprocess = match Process::run(subprocess).unwrap()
     {
         Some(subprocess) => subprocess,
         None => return,

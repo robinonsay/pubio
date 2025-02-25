@@ -2,7 +2,7 @@ use core::{ffi::{self}, mem::MaybeUninit};
 
 use alloc::{format, string::{String, ToString}};
 
-use crate::{error::{ErrNo, Error}, posix::{__errno_location, __socket_type_SOCK_DGRAM, bind, close, htons, in_addr, inet_aton, recv, sendto, sockaddr, sockaddr_in, socket, AF_INET}};
+use crate::{error::{ErrNo, Error}, posix::{__errno_location, __socket_type_SOCK_DGRAM, bind, close, htons, in_addr, inet_aton, poll, pollfd, recv, sendto, sockaddr, sockaddr_in, socket, AF_INET, POLLIN, POLLOUT}};
 
 use super::Communicate;
 
@@ -149,4 +149,57 @@ impl Communicate for UdpSocket
         }
         return Ok(unsafe{buffer.assume_init()});
     }
+    
+    fn try_send<T: Send>(&self, data: T, timeout_ms:i32) -> Result<(), Error> {
+        let mut pfd = pollfd
+        {
+            fd: self.fd,
+            events: POLLOUT as i16,
+            revents: 0
+        };
+        let ret = unsafe{poll(&mut pfd as *mut pollfd, 1, timeout_ms)};
+        if ret > 0
+        {
+            return self.send(data);
+        }
+        else
+        {
+            let mut msg = "Send timeout".to_string();
+            if ret == -1
+            {
+                let errno = unsafe {
+                    *__errno_location()
+                };
+                msg = String::from_errno(errno);
+            }
+            return Err(Error::IpcError(msg));
+        }
+    }
+    
+    fn try_recv<T: Send>(&self, timeout_ms: i32) -> Result<Option<T>, Error> {
+        let mut pfd = pollfd
+        {
+            fd: self.fd,
+            events: POLLIN as i16,
+            revents: 0
+        };
+        let ret = unsafe{poll(&mut pfd as *mut pollfd, 1, timeout_ms)};
+        if ret > 0
+        {
+            let data = self.recv::<T>()?;
+            return Ok(Some(data));
+        }
+        else if ret == 0
+        {
+            return Ok(None);
+        }
+        else
+        {
+            let errno = unsafe {
+                *__errno_location()
+            };
+            return Err(Error::IpcError(String::from_errno(errno)));
+        }
+    }
+    
 }
